@@ -187,6 +187,9 @@ int save_params() {
         fclose(fout);
         if(save_gradsq > 0) fclose(fgs);
     }
+    free(gradsq);
+    free(W);
+    free(word);
     return 0;
 }
 
@@ -225,6 +228,8 @@ int train_glove() {
         for (a = 0; a < num_threads; a++) total_cost += cost[a];
         fprintf(stderr,"iter: %03d, cost: %lf\n", b+1, total_cost/num_lines);
     }
+    free(pt);
+    free(lines_per_thread);
     return save_params();
 }
 
@@ -243,7 +248,7 @@ int find_arg(char *str, int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    int i;
+    int i, ret;
     FILE *fid;
     vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     input_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
@@ -321,5 +326,12 @@ int main(int argc, char **argv) {
     while ((i = getc(fid)) != EOF) if (i == '\n') vocab_size++; // Count number of entries in vocab_file
     fclose(fid);
     
-    return train_glove();
+    ret = train_glove();
+    free(cost);
+    free(vocab_file);
+    free(input_file);
+    free(save_W_file);
+    free(save_gradsq_file);
+
+    return ret;
 }

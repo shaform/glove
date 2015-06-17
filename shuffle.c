@@ -199,7 +199,7 @@ int find_arg(char *str, int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    int i;
+    int i, ret;
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
     
     if (argc == 1) {
@@ -226,6 +226,8 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-memory", argc, argv)) > 0) memory_limit = atof(argv[i + 1]);
     array_size = (long long) (0.95 * (real)memory_limit * 1073741824/(sizeof(CREC)));
     if ((i = find_arg((char *)"-array-size", argc, argv)) > 0) array_size = atoll(argv[i + 1]);
-    return shuffle_by_chunks();
+    ret = shuffle_by_chunks();
+    free(file_head);
+    return ret;
 }
 

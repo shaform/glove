@@ -89,6 +89,20 @@ HASHREC ** inithashtable() {
     return(ht);
 }
 
+void freehashtable(HASHREC **ht) {
+  int i;
+  HASHREC *t;
+  for(i = 0; i < TSIZE; i++) {
+    while (ht[i]) {
+      t = ht[i];
+      ht[i] = t->next;
+      free(t->word);
+      free(t);
+    }
+  }
+  free(ht);
+}
+
 /* Search hash table for given string, insert if not found */
 void hashinsert(HASHREC **ht, char *w) {
     HASHREC	*htmp, *hprv;
@@ -168,6 +182,8 @@ int get_counts() {
     
     if(i == max_vocab && max_vocab < j) if(verbose > 0) fprintf(stderr, "Truncating vocabulary at size %lld.\n", max_vocab);
     fprintf(stderr, "Using vocabulary of size %lld.\n\n", i);
+    free(vocab);
+    freehashtable(vocab_hash);
     return 0;
 }
 
