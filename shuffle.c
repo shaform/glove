@@ -163,12 +163,23 @@ int shuffle_by_chunks() {
         i++;
     }
     shuffle(array, i-1); //Last chunk may be smaller than array_size
-    write_chunk(array,i,fid);
-    l += i;
-    if(verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.\n", l);
-    if(verbose > 1) fprintf(stderr, "Wrote %d temporary file(s).\n", fidcounter + 1);
-    fclose(fid);
-    ret = shuffle_merge(fidcounter + 1, array); // Merge and shuffle together temporary files
+    if (fidcounter == 0) {
+      // Only 1 chunk, no need to merge
+      fclose(fid);
+      // filename has not been changed, let's remove this file
+      remove(filename);
+      write_chunk(array,i,stdout);
+      l += i;
+      if(verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.\n", l);
+      ret = 0;
+    } else {
+      write_chunk(array,i,fid);
+      l += i;
+      if(verbose > 1) fprintf(stderr, "Wrote %d temporary file(s).\n", fidcounter + 1);
+      if(verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.\n", l);
+      fclose(fid);
+      ret = shuffle_merge(fidcounter + 1, array); // Merge and shuffle together temporary files
+    }
     free(array);
     return ret;
 }
