@@ -78,14 +78,12 @@ void shuffle(CREC *array, long n) {
 }
 
 /* Merge shuffled temporary files; doesn't necessarily produce a perfect shuffle, but good enough */
-int shuffle_merge(int num) {
+int shuffle_merge(int num, CREC *array) {
     long i, j, k, l = 0;
     int fidcounter = 0;
-    CREC *array;
     char filename[MAX_STRING_LENGTH];
     FILE **fid, *fout = stdout;
     
-    array = malloc(sizeof(CREC) * array_size * num);
     fid = malloc(sizeof(FILE) * num);
     for(fidcounter = 0; fidcounter < num; fidcounter++) { //num = number of temporary files to merge
         sprintf(filename,"%s_%04d.bin",file_head, fidcounter);
@@ -121,7 +119,6 @@ int shuffle_merge(int num) {
         remove(filename);
     }
     fprintf(stderr, "\n\n");
-    free(array);
     return 0;
 }
 
@@ -132,6 +129,7 @@ int shuffle_by_chunks() {
     char filename[MAX_STRING_LENGTH];
     CREC *array;
     FILE *fin = stdin, *fid;
+    int ret;
     array = malloc(sizeof(CREC) * array_size);
     
     fprintf(stderr,"SHUFFLING COOCCURRENCES\n");
@@ -170,8 +168,9 @@ int shuffle_by_chunks() {
     if(verbose > 1) fprintf(stderr, "\033[22Gprocessed %ld lines.\n", l);
     if(verbose > 1) fprintf(stderr, "Wrote %d temporary file(s).\n", fidcounter + 1);
     fclose(fid);
+    ret = shuffle_merge(fidcounter + 1, array); // Merge and shuffle together temporary files
     free(array);
-    return shuffle_merge(fidcounter + 1); // Merge and shuffle together temporary files
+    return ret;
 }
 
 int find_arg(char *str, int argc, char **argv) {
