@@ -86,6 +86,20 @@ HASHREC ** inithashtable() {
     return(ht);
 }
 
+void freehashtable(HASHREC **ht) {
+  int i;
+  HASHREC *t;
+  for(i = 0; i < TSIZE; i++) {
+    while (ht[i]) {
+      t = ht[i];
+      ht[i] = t->next;
+      free(t->word);
+      free(t);
+    }
+  }
+  free(ht);
+}
+
 /* Search hash table for given string, return record if found, else NULL */
 HASHREC *hashsearch(HASHREC **ht, char *w) {
     HASHREC	*htmp, *hprv;
@@ -270,10 +284,13 @@ int merge_files(int num) {
     fwrite(&old, sizeof(CREC), 1, fout);
     fprintf(stderr,"\033[0GMerging cooccurrence files: processed %lld lines.\n",++counter);
     for(i=0;i<num;i++) {
+        fclose(fid[i]);
         sprintf(filename,"%s_%04d.bin",file_head,i);
         remove(filename);
     }
     fprintf(stderr,"\n");
+    free(pq);
+    free(fid);
     return 0;
 }
 
@@ -307,7 +324,7 @@ int get_cooccurrence() {
     if(verbose > 1) fprintf(stderr, "loaded %lld words.\nBuilding lookup table...", vocab_size);
     
     /* Build auxiliary lookup table used to index into bigram_table */
-    lookup = (long long *)calloc( vocab_size , sizeof(long long) );
+    lookup = (long long *)calloc( vocab_size + 1 , sizeof(long long) );
     if (lookup == NULL) {
         fprintf(stderr, "Couldn't allocate memory!");
         return 1;
@@ -376,8 +393,11 @@ int get_cooccurrence() {
     
     /* Write out temp buffer for the final time (it may not be full) */
     if(verbose > 1) fprintf(stderr,"\033[0GProcessed %lld tokens.\n",counter);
-    qsort(cr, ind, sizeof(CREC), compare_crec);
-    write_chunk(cr,ind,foverflow);
+    if(ind > 0) {
+      qsort(cr, ind, sizeof(CREC), compare_crec);
+      write_chunk(cr,ind,foverflow);
+      fidcounter++;
+    }
     sprintf(filename,"%s_0000.bin",file_head);
     
     /* Write out full bigram_table, skipping zeros */
@@ -395,14 +415,15 @@ int get_cooccurrence() {
         }
     }
     
-    if(verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter + 1);
+    if(verbose > 1) fprintf(stderr,"%d files in total.\n",fidcounter);
     fclose(fid);
     fclose(foverflow);
     free(cr);
     free(lookup);
     free(bigram_table);
-    free(vocab_hash);
-    return merge_files(fidcounter + 1); // Merge the sorted temporary files
+    freehashtable(vocab_hash);
+    free(history);
+    return merge_files(fidcounter); // Merge the sorted temporary files
 }
 
 int find_arg(char *str, int argc, char **argv) {
@@ -420,7 +441,7 @@ int find_arg(char *str, int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    int i;
+    int i, ret;
     real rlimit, n = 1e5;
     vocab_file = malloc(sizeof(char) * MAX_STRING_LENGTH);
     file_head = malloc(sizeof(char) * MAX_STRING_LENGTH);
@@ -471,7 +492,10 @@ int main(int argc, char **argv) {
     if ((i = find_arg((char *)"-max-product", argc, argv)) > 0) max_product = atoll(argv[i + 1]);
     if ((i = find_arg((char *)"-overflow-length", argc, argv)) > 0) overflow_length = atoll(argv[i + 1]);
     
-    return get_cooccurrence();
+    ret = get_cooccurrence();
+    free(vocab_file);
+    free(file_head);
+    return ret;
 }
 
 
